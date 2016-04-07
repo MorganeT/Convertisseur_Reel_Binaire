@@ -1,0 +1,224 @@
+from tkinter import*
+from math import*
+
+fen=Tk()
+can=Canvas(width=300,height=80)
+can.pack()
+fen.title(" IEEE 754 / Decimal")
+fen.resizable(width=False, height=False)
+fen.iconbitmap("monico.ico")
+
+indice=None
+nombre=None
+
+chiffres_decimal=["0","1","2","3","4","5","6","7","8","9","period","minus"]
+
+def decimal_binaire(decimal,signe):
+    decimale=[]
+    i=7
+    kk=0
+    if signe=="reelle" and len(str(decimal))>1:
+        j=0
+        while int(decimal) >= 2**j:
+            kk=j
+            j+=1
+    if signe=="reelle" and len(str(decimal))==1:
+        j=0
+        while int(decimal) >= 2**j:
+            kk=j+1
+            j+=1
+    i=kk
+    total=""
+    if signe=="reelle":
+        while i>=0:
+            if decimal >= 2**i:
+                decimal = decimal - 2**i
+                total = total + "1"
+            else:
+                total = total + "0"
+            i-=1
+    else:
+        i=0
+        total=""
+        while i<50:
+            if int(float(decimal)) < 1:
+                decimal=decimal*2
+                if int(float(decimal)) < 1:
+                    decimale.append("0")
+                else:
+                    decimale.append("1")
+            else:
+                decimal = (float(decimal)-1)*2
+                if int(decimal) < 1:
+                    decimale.append("0")
+                else:
+                    decimale.append("1")
+            i+=1
+        total=decimale
+    return(total)
+
+def calculs_decimal_binaire(nombre):
+    exposant=0
+    if float(nombre)<0:
+        signe="1"
+        nombre = sqrt(float(nombre)**2)
+    else:
+        signe="0"
+    partie_entiere=str(decimal_binaire(int(float(nombre)),"reelle"))
+    partie_dec= decimal_binaire((float(nombre)-int(float(nombre))),"fract")
+    if 1<= int(partie_entiere) < 10:
+        pass
+    else :
+        exposant = 0
+        if int(partie_entiere)>= 10:
+            while int(partie_entiere) >= 10 :
+                exposant = exposant + 1
+                liste=[str(int(partie_entiere))[len(str(int(partie_entiere)))-1]]
+                for j in range(len(partie_dec)-1):
+                    liste.append(partie_dec[j])
+                partie_dec=liste
+                partie_entiere=str(int(partie_entiere))[0:len(str(int(partie_entiere)))-1]
+        else:
+            while int(partie_entiere) < 1 :
+                exposant = exposant -1
+                partie_entiere = str(partie_entiere) + partie_dec[0]
+                partie_dec.remove(partie_dec[0])
+
+    exposant_corrige = exposant + 127
+    exposant_corrige = str(decimal_binaire(exposant_corrige,"reelle"))
+    if len(exposant_corrige)<8:
+        for h in range(8-len(exposant_corrige)):
+            exposant_corrige = "0" + exposant_corrige
+    mantisse=""
+    for k in range(23):
+        mantisse = mantisse + str(partie_dec[k])
+
+    resultat = signe + exposant_corrige + mantisse
+    entry_binary.delete(0,"end")
+    entry_binary.insert(0,resultat)
+
+####################################################################################################
+
+# Partie concernant le binaire vers le decimal #
+
+def binaire_decimal(binaire,signe):
+    i=0
+    total=0
+    if signe=="reelle":
+        while i<len(binaire):
+            total = total + int(str(binaire)[len(binaire)-1-i])*(2**i)
+            i+=1
+    else:
+        while i<len(binaire):
+            total = total + int(str(binaire)[i])*(2**-(i+1))
+            i+=1
+    return(total)
+
+def calculs_binaire_decimal(nombre):
+    if int(nombre[0])==1:
+        signe= "-"
+    else:
+        signe=""
+    exposant_corrige=binaire_decimal(nombre[1:9],"reelle")
+    mantisse=binaire_decimal(nombre[9:32],"fract")
+    exposant=exposant_corrige-127 ## Exposant corrige = exposant reel + 127. Donc exposant reel = exposant corrige - 127
+    resultat = signe + str(2**exposant*(1+mantisse))
+    entry_decimal.delete(0,"end")
+    entry_decimal.insert(0,resultat)
+
+#############################################################################################################################
+
+def lequel(event):
+    touche=event.keysym
+    if indice=="binary":
+        conv_binary_decimal(touche)
+    else:
+        conv_decimal_binary(touche)
+
+def _decimal(event):
+    global indice
+    indice="decimal"
+
+def _binary(event):
+    global indice
+    indice="binary"
+
+def conv_binary_decimal(touche):
+    _get=str(entry_binary.get())
+    if len(_get)>32:
+        corrige= _get[0:32]
+        entry_binary.delete(0, "end")
+        entry_binary.insert(0,corrige)
+    else:
+        if (len(_get))>0:
+            if _get[len(_get)-1] !="1" and _get[len(_get)-1] !="0":
+                corrige= _get[0:len(_get)-1]
+                entry_binary.delete(0, "end")
+                entry_binary.insert(0,corrige)
+    nombre_a_convertir=entry_binary.get()
+    if len(nombre_a_convertir)==32:
+        calculs_binaire_decimal(nombre_a_convertir)
+    else:
+        entry_decimal.delete(0,"end")
+
+def conv_decimal_binary(touche):
+    test=False
+    compteur_moins=0
+    compteur_point=0
+    _get=str(entry_decimal.get())
+    for i in range(len(chiffres_decimal)):
+        if touche==chiffres_decimal[i]:
+            test=True
+    if len(_get)==1 and touche == "period":
+        test=False
+    for i in range(len(_get)):
+        if _get[i]=="-":
+            compteur_moins+=1
+    for i in range(len(_get)):
+        if _get[i]==".":
+            compteur_point+=1
+    if len(_get)>1 and touche=="minus":
+        test=False
+    if len(_get)>1:
+        if _get[len(_get)-1]==".":
+            if _get[len(_get)-2]=="." :
+                test=False
+            else:
+                if _get[len(_get)-2]=="-":
+                    test=False
+        else:
+            if _get[len(_get)-1]=="-" :
+                if _get[len(_get)-2]=="." :
+                    test=False
+                else:
+                    if _get[len(_get)-2]=="-":
+                        test=False
+    if (test==False or compteur_moins>1 or compteur_point>1) and touche != "BackSpace":
+        corrige= _get[0:len(_get)-1]
+        entry_decimal.delete(0, "end")
+        entry_decimal.insert(0,corrige)
+    nombre_a_convertir=str(entry_decimal.get())
+    if len(nombre_a_convertir)>0 and nombre_a_convertir!="-" and nombre_a_convertir != "0." and nombre_a_convertir !="-0." :
+        if float(nombre_a_convertir)!=0 :
+            if -(2**(127)*2) < float(nombre_a_convertir) < 2**(127)*2 :
+                calculs_decimal_binaire(nombre_a_convertir)
+    else:
+        entry_binary.delete(0,"end")
+
+
+entry_binary=Entry(width=40,justify=CENTER)
+entry_binary.place(x=30,y=18)
+
+entry_decimal=Entry(width=40,justify=CENTER)
+entry_decimal.place(x=30,y=50)
+
+can.create_text(150,9,text="Binary")
+can.create_text(150,42,text="=")
+can.create_text(150,75,text="Decimal")
+
+entry_binary.bind("<Key>",_binary)
+entry_decimal.bind("<Key>",_decimal)
+
+fen.bind("<Key>",lequel)
+
+fen.mainloop()
